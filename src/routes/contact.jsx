@@ -1,17 +1,29 @@
-import { Form, useLoaderData } from 'react-router-dom';
-import { getContact } from '../contacts';
+import { Form, useLoaderData, useFetcher } from 'react-router-dom';
+import { getContact, updateContact } from '../contacts';
 
 export async function loader({ params }) {
   const contact = await getContact(params.contactId);
+  console.log(contact, 'contact');
+  if (!contact) {
+    console.log(111);
+    throw new Response('', {
+      status: 404,
+      statusText: 'not found',
+    });
+  }
   return {
     contact,
   };
 }
 
 const Favorite = ({ contact }) => {
+  const fetcher = useFetcher();
   let favorite = contact.favorite;
+  if (fetcher.formData) {
+    favorite = fetcher.formData.get('favorite') === 'true';
+  }
   return (
-    <Form method='post'>
+    <fetcher.Form method='post'>
       <button
         name='favorite'
         value={favorite ? 'false' : 'true'}
@@ -19,20 +31,19 @@ const Favorite = ({ contact }) => {
       >
         {favorite ? '*' : 'x'}
       </button>
-    </Form>
+    </fetcher.Form>
   );
 };
 
+export async function action({ request, params }) {
+  let formData = await request.formData();
+  return updateContact(params.contactId, {
+    favorite: formData.get('favorite') === 'true',
+  });
+}
+
 const Contact = () => {
   const { contact } = useLoaderData();
-  // const contact = {
-  //   first: 'Your',
-  //   last: 'Name',
-  //   avatar: 'https://placekitten.com/g/200/200',
-  //   twitter: 'your_handle',
-  //   notes: 'Some notes',
-  //   favorite: true,
-  // };
 
   return (
     <div id='contact'>
